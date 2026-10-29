@@ -1,0 +1,22 @@
+{
+  "habits": [
+    {
+      "id": "ba1d6bd7-34ef-47bd-8e7e-41addb349f13",
+      "name": "Бег по утрам",
+      "created_at": "2026-10-29T12:02:02.006Z"
+    },
+    {
+      "id": "e6595675-7f2f-416e-8034-d9de6cd27aa1",
+      "name": "Чтение",
+      "created_at": "2026-10-29T12:02:02.018Z"
+    }
+  ],
+  "logs": [
+    {
+      "id": "d4ec7ae7-b730-4417-8278-d905fb2a0c66",
+      "habit_id": "ba1d6bd7-34ef-47bd-8e7e-41addb349f13",
+      "date": "2026-10-29",
+      "completed": 1
+    }
+  ]
+}

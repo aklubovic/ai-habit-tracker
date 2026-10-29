@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Habit Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #0f172a; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  .container { max-width: 760px; margin: 0 auto; padding: 28px 20px; }
+  nav { background: #ffffff; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 50; }
+  .nav-inner { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.125rem; color: #0f172a; }
+  .brand .h { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #22c55e, #15803d); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.75rem; }
+  .status-row { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; font-weight: 500; color: #64748b; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; animation: pulse 1.5s infinite; }
+  .dot.on { background: #22c55e; animation: none; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .section { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+  h2 { font-size: 1.125rem; font-weight: 700; margin-bottom: 16px; color: #0f172a; letter-spacing: -0.01em; }
+  .add-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end; }
+  input[type="text"] { flex: 1; min-width: 220px; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; outline: none; background: #ffffff; color: #0f172a; }
+  input[type="text"]:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+  button { cursor: pointer; border: none; border-radius: 10px; padding: 10px 16px; font-weight: 600; font-size: 0.95rem; transition: all 0.2s; font-family: inherit; }
+  button.primary { background: #22c55e; color: white; }
+  button.primary:hover { background: #16a34a; }
+  button.secondary { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+  button.secondary:hover { background: #e2e8f0; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .habits-list { display: flex; flex-direction: column; gap: 8px; }
+  .habit-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fafafa; }
+  .habit-info { display: flex; align-items: center; gap: 10px; }
+  .habit-avatar { width: 34px; height: 34px; border-radius: 50%; background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; }
+  .habit-name { font-weight: 600; color: #0f172a; }
+  .habit-actions { display: flex; gap: 6px; }
+  .btn-small { width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.9rem; }
+  .btn-ok { background: #dcfce7; color: #15803d; }
+  .btn-ok:hover { background: #bbf7d0; }
+  .btn-del { background: #f1f5f9; color: #64748b; }
+  .btn-del:hover { background: #fee2e2; color: #dc2626; }
+  .calendar-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 12px 8px; font-size: 0.75rem; font-weight: 600; color: #94a3b8; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
+  th.center { text-align: center; width: 40px; }
+  td { padding: 8px; border-bottom: 1px solid #f8fafc; }
+  td.name { font-weight: 600; color: #334155; width: 160px; font-size: 0.9rem; }
+  .cell { width: 40px; height: 40px; min-width: 40px; border-radius: 10px; cursor: pointer; transition: all 0.15s; text-align: center; line-height: 40px; font-size: 0.7rem; font-weight: 700; }
+  .cell.empty { background: #f1f5f9; color: #cbd5e1; }
+  .cell.done { background: #22c55e; color: white; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+  .cell.today { border: 2px solid #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+  .ai-card { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; border-radius: 16px; padding: 24px; position: relative; overflow: hidden; }
+  .ai-card h2 { color: white; }
+  .ai-card p.sub { color: #c7d2fe; font-size: 0.9rem; margin-bottom: 16px; line-height: 1.5; }
+  textarea.ai-input { width: 100%; min-height: 100px; padding: 14px; border-radius: 12px; border: none; background: rgba(255,255,255,0.15); color: white; font-family: inherit; font-size: 0.95rem; resize: vertical; outline: none; }
+  textarea.ai-input::placeholder { color: #a5b4fc; }
+  textarea.ai-input:focus { background: rgba(255,255,255,0.22); }
+  .ai-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  button.ai-btn { flex: 1; min-width: 160px; background: white; color: #4f46e5; }
+  button.ai-btn:hover { background: #f8fafc; }
+  button.demo-btn { flex: 1; min-width: 160px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); }
+  button.demo-btn:hover { background: rgba(255,255,255,0.2); }
+  .ai-result { margin-top: 16px; padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); font-size: 0.9rem; }
+  .ai-result.hidden { display: none; }
+  .ai-result ul { margin-left: 18px; margin-top: 6px; color: #dbeafe; }
+  .ai-status { margin-top: 10px; font-size: 0.8rem; }
+  .ai-status.ok { color: #86efac; }
+  .ai-status.err { color: #fca5a5; }
+  .ai-status.info { color: #bfdbfe; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; }
+  .stat-name { font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 8px; }
+  .stat-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+  .stat-fill { height: 100%; background: #22c55e; }
+  .stat-val { font-size: 0.875rem; font-weight: 700; color: #0f172a; }
+  .empty-state { text-align: center; color: #94a3b8; font-size: 0.875rem; padding: 24px; }
+  @media (max-width: 480px) {
+    .container { padding: 16px 12px; }
+    .section { padding: 18px; }
+    .ai-actions { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <div class="brand">
+      <div class="h">H</div>
+      <span>AI Habit Tracker</span>
+    </div>
+    <div class="status-row">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Проверка ИИ…</span>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <section class="section">
+    <h2>Ваши привычки</h2>
+    <div class="add-row">
+      <input id="newHabit" type="text" placeholder="Например: Бег по утрам" />
+      <button id="addHabit" class="button primary">Добавить</button>
+    </div>
+    <div id="habitsList" class="habits-list"></div>
+  </section>
+
+  <section class="section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h2>Календарь недели</h2>
+      <span style="font-size:0.75rem;font-weight:600;color:#64748b;background:#f1f5f9;padding:4px 10px;border-radius:20px;">Пн — Вс</span>
+    </div>
+    <div class="calendar-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">Привычка</th>
+            <th id="weekHeader" class="center"></th>
+          </tr>
+        </thead>
+        <tbody id="weekBody"></tbody>
+      </table>
+    </div>
+    <p style="font-size:0.7rem;color:#94a3b8;text-align:center;margin-top:8px;">Кликайте по ячейке, чтобы отметить выполнение</p>
+  </section>
+
+  <section class="section ai-card">
+    <h2>ИИ-помощник</h2>
+    <p class="sub">Расскажите, что сделали сегодня — я проставлю галочки за вас.</p>
+    <textarea id="aiText" class="ai-input" placeholder="Сегодня пробежал 5 км, прочитал 20 страниц, но забыл про английский…"></textarea>
+    <div class="ai-actions">
+      <button id="aiProcess" class="button ai-btn">Обработать через ИИ</button>
+      <button id="aiDemo" class="button demo-btn">Демо (без ключа)</button>
+    </div>
+    <div id="aiResult" class="ai-result hidden"></div>
+    <p id="aiStatus" class="ai-status info"></p>
+  </section>
+
+  <section class="section">
+    <h2>Статистика недели</h2>
+    <div id="statsGrid" class="stats-grid"></div>
+  </section>
+</div>
+
+<script>
+const API = '/api';
+let habits = [];
+const weekDays = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+
+async function load() {
+  try {
+    const r = await fetch(`${API}/habits`);
+    habits = await r.json();
+  } catch (e) { habits = []; }
+  try {
+    const st = await (await fetch(`${API}/status`)).json();
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    if (st.ai) {
+      dot.className = 'dot on';
+      txt.textContent = `ИИ готов (${st.model})`;
+      txt.className = 'font-medium text-green-700';
+    } else {
+      dot.className = 'dot';
+      txt.textContent = 'ИИ не настроен';
+      txt.className = 'font-medium text-red-600';
+    }
+  } catch (e) {}
+  render();
+  renderStats();
+}
+
+function render() {
+  const list = document.getElementById('habitsList');
+  list.innerHTML = '';
+  habits.forEach(h => {
+    const div = document.createElement('div');
+    div.className = 'habit-item';
+    div.innerHTML = `
+      <div class="habit-info">
+        <div class="habit-avatar">${h.name.charAt(0).toUpperCase()}</div>
+        <span class="habit-name">${escapeHtml(h.name)}</span>
+      </div>
+      <div class="habit-actions">
+        <button class="btn-small btn-ok" onclick="toggleHabit('${h.id}')" title="Сегодня">✓</button>
+        <button class="btn-small btn-del" onclick="deleteHabit('${h.id}')" title="Удалить">✕</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+  renderCalendar();
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function getWeekDates() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const day = today.getDay() === 0 ? 6 : today.getDay() - 1;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - day);
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return dates;
+}
+
+async function renderCalendar() {
+  const dates = getWeekDates();
+  const header = document.getElementById('weekHeader');
+  const todayStr = new Date().toISOString().split('T')[0];
+  header.innerHTML = dates.map(d => {
+    const dateObj = new Date(d);
+    const dayName = weekDays[dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1];
+    const isToday = d === todayStr;
+    return `<th class="center">${dayName}${isToday ? '<br><span style="font-size:0.65rem;opacity:0.7">сегодня</span>' : ''}</th>`;
+  }).join('');
+
+  const body = document.getElementById('weekBody');
+  body.innerHTML = '';
+  for (const h of habits) {
+    const logs = await (await fetch(`${API}/habits/${h.id}/logs`)).json();
+    const logMap = {};
+    logs.forEach(l => logMap[l.date] = l.completed);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="name">${escapeHtml(h.name)}</td>`;
+    dates.forEach(date => {
+      const td = document.createElement('td');
+      const done = !!logMap[date];
+      const isToday = date === todayStr;
+      td.className = `cell ${done ? 'done' : 'empty'} ${isToday ? 'today' : ''}`;
+      td.onclick = () => toggleHabit(h.id, date);
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  }
+}
+
+async function toggleHabit(habitId, date) {
+  await fetch(`${API}/habits/${habitId}/toggle`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ date })
+  });
+  render();
+  renderStats();
+}
+
+async function addHabit() {
+  const input = document.getElementById('newHabit');
+  if (!input.value.trim()) return;
+  await fetch(`${API}/habits`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ name: input.value.trim() })
+  });
+  input.value = '';
+  load();
+}
+
+async function deleteHabit(id) {
+  if (!confirm('Удалить привычку?')) return;
+  await fetch(`${API}/habits/${id}`, { method: 'DELETE' });
+  load();
+}
+
+async function renderStats() {
+  const dates = getWeekDates();
+  const grid = document.getElementById('statsGrid');
+  grid.innerHTML = '';
+  if (habits.length === 0) {
+    grid.innerHTML = '<div class="empty-state">Добавьте привычки, чтобы видеть статистику</div>';
+    return;
+  }
+  for (const h of habits) {
+    const logs = await (await fetch(`${API}/habits/${h.id}/logs`)).json();
+    const doneThisWeek = logs.filter(l => dates.includes(l.date)).length;
+    const pct = Math.round((doneThisWeek / dates.length) * 100);
+    const div = document.createElement('div');
+    div.className = 'stat-card';
+    div.innerHTML = `
+      <div class="stat-name">${escapeHtml(h.name)}</div>
+      <div class="stat-bar"><div class="stat-fill" style="width:${pct}%"></div></div>
+      <div class="stat-val">${doneThisWeek}/${dates.length}</div>
+      <div style="font-size:0.7rem;color:#94a3b8;margin-top:4px;">за неделю</div>
+    `;
+    grid.appendChild(div);
+  }
+}
+
+document.getElementById('addHabit').onclick = addHabit;
+document.getElementById('newHabit').onkeypress = (e) => { if (e.key === 'Enter') addHabit(); };
+
+async function processAI() {
+  const text = document.getElementById('aiText').value.trim();
+  if (!text) return;
+  const btn = document.getElementById('aiProcess');
+  const demo = document.getElementById('aiDemo');
+  btn.disabled = true; demo.disabled = true;
+  btn.textContent = 'ИИ думает…';
+  const result = document.getElementById('aiResult');
+  const status = document.getElementById('aiStatus');
+  result.classList.add('hidden');
+  status.textContent = '';
+  status.className = 'ai-status';
+
+  try {
+    const res = await fetch(`${API}/ai`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    result.classList.remove('hidden');
+    if (data.matched && data.matched.length) {
+      result.innerHTML = '<strong>Сопоставлено и обновлено:</strong><ul>' + data.matched.map(m => `<li>${escapeHtml(m.habit)}: ${m.completed ? '<span style="color:#86efac;font-weight:700">✓ выполнено</span>' : '<span style="color:#fca5a5;font-weight:700">✗ не выполнено</span>'}</li>`).join('') + '</ul>';
+      status.textContent = 'Галочки проставлены за сегодня.';
+      status.className = 'ai-status ok';
+      setTimeout(load, 600);
+    } else {
+      result.innerHTML = '<p>Ничего не совпало с вашими привычками.</p>';
+      status.textContent = data.message || '';
+      status.className = 'ai-status info';
+    }
+  } catch (e) {
+    result.classList.remove('hidden');
+    result.innerHTML = `<p style="color:#fca5a5">Ошибка: ${escapeHtml(e.message)}</p>`;
+    status.textContent = 'Настройте LLM_API_KEY на сервере.';
+    status.className = 'ai-status err';
+  } finally {
+    btn.disabled = false; demo.disabled = false;
+    btn.textContent = 'Обработать через ИИ';
+  }
+}
+
+async function processDemo() {
+  const text = document.getElementById('aiText').value.trim().toLowerCase();
+  if (!text) return;
+  const result = document.getElementById('aiResult');
+  const status = document.getElementById('aiStatus');
+  result.classList.remove('hidden');
+  status.textContent = '';
+
+  const matched = [];
+  const today = new Date().toISOString().split('T')[0];
+  for (const h of habits) {
+    const name = h.name.toLowerCase();
+    const neg = ['не ', 'забил', 'пропустил', 'не сделал', 'забей'];
+    const words = name.split(' ').filter(w => w.length > 2);
+    const mentioned = words.some(w => text.includes(w));
+    const denied = neg.some(n => text.includes(n));
+    const completed = mentioned && !denied;
+    if (mentioned) {
+      matched.push({ habit: h.name, completed });
+      await fetch(`${API}/habits/${h.id}/toggle/force`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ date: today, completed })
+      });
+    }
+  }
+
+  if (matched.length) {
+    result.innerHTML = '<strong>Демо-режим (ключевые слова):</strong><ul>' + matched.map(m => `<li>${escapeHtml(m.habit)}: ${m.completed ? '<span style="color:#86efac;font-weight:700">✓</span>' : '<span style="color:#fca5a5;font-weight:700">✗</span>'}</li>`).join('') + '</ul>';
+    status.textContent = 'Галочки проставлены в демо-режиме.';
+    status.className = 'ai-status info';
+    setTimeout(load, 600);
+  } else {
+    result.innerHTML = '<p>Ничего не найдено в демо-режиме.</p>';
+    status.className = 'ai-status info';
+  }
+}
+
+document.getElementById('aiProcess').onclick = processAI;
+document.getElementById('aiDemo').onclick = processDemo;
+
+load();
+setInterval(renderStats, 30000);
+</script>
+</body>
+</html>
